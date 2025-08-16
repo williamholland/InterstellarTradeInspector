@@ -1,4 +1,5 @@
 import pygame
+import traceback
 import sqlite3
 import os
 from .text_scene import TextScene
@@ -84,24 +85,45 @@ class Level(TextScene):
 
             pygame.display.flip()
 
+    def set_solved(self):
+        """Mark the current level as solved in level_meta.sqlite."""
+        db_path = os.path.join(os.path.dirname(__file__), "../../data/level_meta.sqlite")
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        try:
+            cur.execute("UPDATE Level SET solved = 1 WHERE id = ?", (self.level_id,))
+            conn.commit()
+            print(f"Level {self.level_id} marked as solved.")
+        except Exception as e:
+            print("Error updating solved status:", e)
+        finally:
+            conn.close()
+
     def check_sql(self):
         base_path = os.path.dirname(__file__)
         example_db = os.path.join(base_path, f"../../data/level{self.level_id}_example.sqlite")
         conn = sqlite3.connect(example_db)
         cur = conn.cursor()
+        player_sql = self.sql_box.get_text().strip()
+        print("Player SQL:", repr(player_sql))
         try:
             cur.execute(self.sql_box.get_text().strip())
             player_result = cur.fetchall()
+            print("Player result:", repr(player_result))
 
             solution_sql = self.meta["solution_sql"]
+            #print("Game SQL:", repr(solution_sql))
             cur.execute(solution_sql)
             expected_result = cur.fetchall()
+            print("Expected result:", repr(expected_result))
 
             if player_result == expected_result:
                 self.result_text = "✅ Correct!"
+                self.set_solved()
             else:
-                self.result_text = f"❌ Incorrect.\nExpected: {expected_result}\nGot: {player_result}"
+                self.result_text = f"❌ Incorrect.\nYour result: {player_result}"
         except Exception as e:
+            print(traceback.format_exc())
             self.result_text = f"Error: {e}"
         finally:
             conn.close()
