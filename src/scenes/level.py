@@ -26,7 +26,7 @@ class Level(TextScene):
         }
 
         # SQL input box instance
-        self.sql_box = SQLTextBox(100, 300, 800, 200)
+        self.sql_box = SQLTextBox(100, 400, 800, 200)
 
         # Buttons
         self.button_rect = pygame.Rect(100, 600, 120, 40)
@@ -102,6 +102,11 @@ class Level(TextScene):
     def check_sql(self):
         base_path = os.path.dirname(__file__)
         example_db = os.path.join(base_path, f"../../data/level{self.level_id}_example.sqlite")
+
+        # Fallback if no level-specific database exists
+        if not os.path.exists(example_db):
+            example_db = os.path.join(base_path, "../../data/default_example.sqlite")
+
         conn = sqlite3.connect(example_db)
         cur = conn.cursor()
         player_sql = self.sql_box.get_text().strip()
